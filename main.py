@@ -4,7 +4,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn import svm
-from sklearn.model_selection import KFold
+from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.metrics import accuracy_score
 from sklearn.decomposition import PCA
 
@@ -36,7 +36,7 @@ ivi = np.where(Y=="Iris-virginica")
 
 
 X = np.array(iris_data[["1", "2", "3", "4"]])
-#normalise data between 0 and 1
+#normalise data between 0 and 1, it's advised
 X = (X-np.nanmin(X, axis=0))/(np.nanmax(X, axis=0)-np.nanmin(X, axis=0))
 
 
@@ -62,46 +62,87 @@ info = pca.explained_variance_ratio_[0]*100+pca.explained_variance_ratio_[1]*100
 print("We maintain a total of {:.2f}% of the information".format(info))
 
 
-#k fold
-n = 5
-kfold = KFold(n_splits=n)
-accuracy = np.zeros(n)
-i=0
-for train, test in kfold.split(X, Y):
-    
-    #lowering the dimension of data so that it is 2d
-    pca_model = PCA(info/100)
-    pca_model.fit(X[train])
-    x_train = pca_model.transform(X[train])
-    x_test = pca_model.transform(X[test])
-    
-    #I wanna test more kernels later
-    clf = svm.SVC()
-    clf.fit(x_train, Y[train])
-    
-    y_pred = clf.predict(x_test)
-    
-    accuracy[i] = accuracy_score(y_pred, Y[test])
-    i+=1
-    y_train = Y[train]
-    
-#plotting the last split:
-fig, ax = plt.subplots()
-# title for the plots
-title = ('Decision surface of SVC ')
-# Set-up grid for plotting.
-X0, X1 = x_train[:, 0], x_train[:, 1]
-xx, yy = make_meshgrid(X0, X1)
+#various margins to test out 
+C = [0.01, 0.1, 1, 10, 100, 1000]
 
-y_train[np.where(y_train == "Iris-setosa")]='r'
-y_train[np.where(y_train == "Iris-versicolor")]='g'
-y_train[np.where(y_train == "Iris-virginica")]='b'
-
-plot_contours(ax, clf, xx, yy, cmap=plt.cm.coolwarm, alpha=0.8)
-ax.scatter(X0, X1, c=y_train, cmap=plt.cm.coolwarm, s=20, edgecolors='k')
-ax.set_ylabel('feature 1')
-ax.set_xlabel('feature 2')
-ax.set_xticks(())
-ax.set_yticks(())
-ax.set_title(title)
-plt.show()
+for margin in C:
+    #k fold
+    n = 5
+    #the regular kfold can be used too, but the stratified kfold is better here
+    #the advantage here is that the folds preserve the percentage of samples for each class
+    #the regualr kfold might yield folds where at least one class is absent, this is
+    #especially problematic in situations with class imbalance (which isnt the current case)
+    kfold = StratifiedKFold(n_splits=n)
+    
+    #4 because I'm using 4 kernels
+    accuracy = np.zeros([4,n])
+    i=0
+    for train, test in kfold.split(X, Y):
+        
+        #lowering the dimension of data so that it is 2d
+        #the PCA was calculated before and it had a explained variance, so we can try to split data
+        pca_model = PCA(0.99*info/100)
+        pca_model.fit(X[train])
+        
+        x_train = pca_model.transform(X[train])
+        x_test = pca_model.transform(X[test])
+         
+        #testing 4 kernels
+        linear = svm.SVC(kernel = 'linear', C = margin)
+        linear.fit(x_train, Y[train])
+        
+        rbf = svm.SVC(kernel='rbf', C = margin)
+        rbf.fit(x_train, Y[train])
+        
+        poly = svm.SVC(kernel='poly', C = margin, degree = 3)
+        poly.fit(x_train, Y[train])
+        
+        sigm = svm.SVC(kernel='sigmoid', C = margin)
+        sigm.fit(x_train, Y[train])
+        
+        for j, clf in enumerate((linear, rbf, poly, sigm)):
+            y_pred = clf.predict(x_test)
+            accuracy[j, i] = accuracy_score(y_pred, Y[test])
+        i+=1
+        y_test= Y[test]
+        
+    
+    y_test[np.where(y_test == "Iris-setosa")] = 'blue'
+    y_test[np.where(y_test == "Iris-versicolor")] = 'yellow'
+    y_test[np.where(y_test == "Iris-virginica")] = 'red'
+    
+    #plotting the last split, possible as the PCA reduced dimensionality from 4 to 2 while losing just 5% of information:
+    fig, ax = plt.subplots(figsize=(18.64, 9.48))
+    # title for the plots
+    title1 = ('Decision surface for the ')
+    title2 = ['Linear Kernel','RBF Kernel','Polynomial Kernel','Sigmoid Kernel']
+    title3 = (' Formulation. Accuracy = ')
+    # Set-up grid for plotting.
+    for i, clf in enumerate((linear, rbf, poly, sigm)):
+        plt.subplot(2, 2, i + 1)
+        X0, X1 = x_test[:, 0], x_test[:, 1]
+        xx, yy = make_meshgrid(X0, X1)
+        
+        #predict and colour classes
+        #code adapted from 
+        #https://towardsdatascience.com/multiclass-classification-with-support-vector-machines-svm-kernel-trick-kernel-functions-f9d5377d6f02
+        #https://stackoverflow.com/questions/51495819/how-to-plot-svm-decision-boundary-in-sklearn-python
+        aux=xx.ravel()
+        auxy=yy.ravel()
+        Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+        Z = Z.reshape(xx.shape)
+        Z[np.where(Z == "Iris-setosa")]=255
+        Z[np.where(Z == "Iris-versicolor")]=0
+        Z[np.where(Z == "Iris-virginica")]=120
+        #plot them
+        plt.contourf(xx, yy, Z, cmap = plt.cm.coolwarm, alpha=0.8)
+        
+        plt.scatter(X0, X1, c=y_test, cmap=plt.cm.coolwarm, s=20, edgecolors='k')
+        plt.ylabel('feature 1')
+        plt.xlabel('feature 2')
+        plt.xticks(())
+        plt.yticks(())
+        #accuracy also printed here
+        plt.title(title1+str(title2[i])+title3+"{:.2f}%".format(np.mean(accuracy[i,:]*100)))
+        plt.show()
+        plt.savefig(fname = str(margin)+".png")   
