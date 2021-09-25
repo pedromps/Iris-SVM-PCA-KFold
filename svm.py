@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
+import matplotlib.pyplot as plt
 from sklearn import svm
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.metrics import accuracy_score
 from sklearn.decomposition import PCA
-from sklearn.naive_bayes import GaussianNB
 
 
 # functions for decision boundaries, taken from https://stackoverflow.com/questions/51495819/how-to-plot-svm-decision-boundary-in-sklearn-python
@@ -149,13 +148,4 @@ for margin in C:
         plt.title(title1+str(title2[i])+title3+"{:.2f}%".format(np.mean(accuracy[i,:]*100)))
         plt.show()
         plt.savefig(fname = str(margin)+".png")   
-		
-
-# the best results are for the RBF kernel with C = 1
-        
-# Let's see how a Naïve Bayers holds against this
-bayes = GaussianNB()
-bayes.fit(X[train], Y[train])
-
-y_predd = bayes.predict(X[test])
-print("acc = ", accuracy_score(Y[test], y_predd))
+        		      
