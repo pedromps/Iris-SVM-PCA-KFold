@@ -81,8 +81,8 @@ for margin in C:
     for train, test in kfold.split(X, Y):
         
         # lowering the dimension of data so that it is 2d
-        # the PCA was calculated before and it had a explained variance, so we can try to split data
-        pca_model = PCA(0.99*info/100)
+        # we can try to lower data dimensionality as we keep most info with 2 comps
+        pca_model = PCA(n_components = 2)
         pca_model.fit(X[train])
         
         x_train = pca_model.transform(X[train])
