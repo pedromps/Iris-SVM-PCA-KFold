@@ -64,7 +64,7 @@ print("We maintain a total of {:.2f}% of the information".format(info))
 
 
 # various margins to test out 
-C = [0.01, 0.1, 1, 10, 100]
+C = [0.01, 0.1, 1, 10, 100, 1000]
 
 for margin in C:
     # k fold
@@ -147,5 +147,5 @@ for margin in C:
         #accuracy also printed here
         plt.title(title1+str(title2[i])+title3+"{:.2f}%".format(np.mean(accuracy[i,:]*100)))
         plt.show()
-        plt.savefig(fname = str(margin)+".png")   
+        plt.savefig(fname = "./results/" + str(margin) + ".png")   
         		      
