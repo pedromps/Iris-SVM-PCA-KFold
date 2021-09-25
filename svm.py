@@ -64,8 +64,8 @@ info = pca.explained_variance_ratio_[0]*100+pca.explained_variance_ratio_[1]*100
 print("We maintain a total of {:.2f}% of the information".format(info))
 
 
-#v arious margins to test out 
-C = [0.01, 0.1, 1, 10, 100, 1000]
+# various margins to test out 
+C = [0.01, 0.1, 1, 10, 100]
 
 for margin in C:
     # k fold
@@ -105,6 +105,7 @@ for margin in C:
         for j, clf in enumerate((linear, rbf, poly, sigm)):
             y_pred = clf.predict(x_test)
             accuracy[j, i] = accuracy_score(Y[test], y_pred)
+            
         i+=1
         y_test= Y[test]
         
@@ -149,7 +150,8 @@ for margin in C:
         plt.show()
         plt.savefig(fname = str(margin)+".png")   
 		
-        
+
+# the best results are for the RBF kernel with C = 1
         
 # Let's see how a Naïve Bayers holds against this
 bayes = GaussianNB()
