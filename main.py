@@ -7,6 +7,8 @@ from sklearn import svm
 from sklearn.model_selection import StratifiedKFold, KFold
 from sklearn.metrics import accuracy_score
 from sklearn.decomposition import PCA
+from sklearn.naive_bayes import GaussianNB
+
 
 # functions for decision boundaries, taken from https://stackoverflow.com/questions/51495819/how-to-plot-svm-decision-boundary-in-sklearn-python
 def make_meshgrid(x, y, h=.02):
@@ -102,7 +104,7 @@ for margin in C:
         
         for j, clf in enumerate((linear, rbf, poly, sigm)):
             y_pred = clf.predict(x_test)
-            accuracy[j, i] = accuracy_score(y_pred, Y[test])
+            accuracy[j, i] = accuracy_score(Y[test], y_pred)
         i+=1
         y_test= Y[test]
         
@@ -147,3 +149,11 @@ for margin in C:
         plt.show()
         plt.savefig(fname = str(margin)+".png")   
 		
+        
+        
+# Let's see how a Naïve Bayers holds against this
+bayes = GaussianNB()
+bayes.fit(X[train], Y[train])
+
+y_predd = bayes.predict(X[test])
+print("acc = ", accuracy_score(Y[test], y_predd))
