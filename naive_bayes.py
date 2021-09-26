@@ -22,7 +22,7 @@ X = np.array(iris_data[["1", "2", "3", "4"]])
 # normalise data between 0 and 1, it's advised
 X = (X-np.nanmin(X, axis = 0))/(np.nanmax(X, axis = 0)-np.nanmin(X, axis = 0))
 
-#PCA fitting and transform
+# PCA fitting and transform
 pca_model = PCA(n_components = 2)
 pca_model.fit(X)
 print("Explained variance sums to {:.2f}".format(100*np.sum(pca_model.explained_variance_ratio_)))
@@ -33,6 +33,10 @@ i = 0
 n = 5
 kfold = StratifiedKFold(n_splits = n, shuffle = True)
 accuracy = np.zeros([2, n])
+# the confusion matrices are n_classes by n_classes in size
+n_classes = np.unique(Y).shape[0]
+confmat_rbf = np.zeros([n_classes, n_classes])
+confmat_bayes = np.zeros([n_classes, n_classes])
 
 for train, test in kfold.split(X, Y):
     
@@ -55,9 +59,10 @@ for train, test in kfold.split(X, Y):
     
     # index to iterate over the accuracy matrix
     i+=1
+    
+    # code for the confusion matrices
+    confmat_rbf += confusion_matrix(Y[test], y_pred_rbf)
+    confmat_bayes += confusion_matrix(Y[test], y_pred_bayes)
 
 print("Accuracy of the RBF Kernel SVM = {:.2f}".format(100*np.mean(accuracy[0,:])))
 print("Accuracy of the Naïve Bayes SVM = {:.2f}".format(100*np.mean(accuracy[1,:])))
-
-# confmat_rbf = confusion_matrix(y_test, y_pred_rbf)
-# confmat_bayes = confusion_matrix(y_test, y_pred_bayes)
