@@ -66,6 +66,11 @@ print("We maintain a total of {:.2f}% of the information".format(info))
 # various margins to test out 
 C = [0.01, 0.1, 1, 10, 100, 1000]
 
+# lowering the dimension of data so that it is 2d
+# we can try to lower data dimensionality as we keep most info with 2 comps
+pca_model = PCA(n_components = 2)
+pca_model.fit(X)
+
 for margin in C:
     # k fold
     n = 5
@@ -73,21 +78,17 @@ for margin in C:
     # the advantage here is that the folds preserve the percentage of samples for each class
     # the regualr kfold might yield folds where at least one class is absent, this is
     # especially problematic in situations with class imbalance (which isnt the current case)
-    kfold = StratifiedKFold(n_splits = n)
+    kfold = StratifiedKFold(n_splits = n, shuffle = True)
     
     #4 because I'm using 4 kernels
     accuracy = np.zeros([4, n])
     i = 0
     for train, test in kfold.split(X, Y):
-        
-        # lowering the dimension of data so that it is 2d
-        # we can try to lower data dimensionality as we keep most info with 2 comps
-        pca_model = PCA(n_components = 2)
-        pca_model.fit(X[train])
-        
+         
+        #apply PCA with the fitting determined before
         x_train = pca_model.transform(X[train])
         x_test = pca_model.transform(X[test])
-         
+
         # testing 4 kernels
         linear = svm.SVC(kernel = 'linear', C = margin)
         linear.fit(x_train, Y[train])

@@ -5,7 +5,7 @@ import pandas as pd
 from sklearn import svm
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.naive_bayes import GaussianNB
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import StratifiedKFold
 from sklearn.decomposition import PCA
 
 # import data
@@ -28,22 +28,36 @@ pca_model.fit(X)
 print("Explained variance sums to {:.2f}".format(100*np.sum(pca_model.explained_variance_ratio_)))
 X_PCA = pca_model.transform(X)
 
-x_train, x_test, y_train, y_test = train_test_split(X_PCA, Y, train_size = 0.7)
 
+i = 0
+n = 5
+kfold = StratifiedKFold(n_splits = n, shuffle = True)
+accuracy = np.zeros([2, n])
 
-# RBF kernel SVM was chosen as the best. Ideally this would be picked based on
-# the validation loss, but this should work fine for comparison's sake
-rbf = svm.SVC(kernel = 'rbf', C = 1)
-rbf.fit(x_train, y_train)
+for train, test in kfold.split(X, Y):
+    
+    # RBF kernel SVM was chosen as the best. Ideally this would be picked based on
+    # the validation loss, but this should work fine for comparison's sake
+    rbf = svm.SVC(kernel = 'rbf', C = 1)
+    rbf.fit(X[train], Y[train])
+    
+    # Let's see how a Naïve Bayers holds against this
+    bayes = GaussianNB()
+    bayes.fit(X[train], Y[train])
+    
+    # predictions
+    y_pred_rbf = rbf.predict(X[test])
+    y_pred_bayes = bayes.predict(X[test])
+    
+    # registering the accuracies
+    accuracy[0, i] = accuracy_score(Y[test], y_pred_rbf)
+    accuracy[1, i] = accuracy_score(Y[test], y_pred_bayes)
+    
+    # index to iterate over the accuracy matrix
+    i+=1
 
-# Let's see how a Naïve Bayers holds against this
-bayes = GaussianNB()
-bayes.fit(x_train, y_train)
+print("Accuracy of the RBF Kernel SVM = {:.2f}".format(100*np.mean(accuracy[0,:])))
+print("Accuracy of the Naïve Bayes SVM = {:.2f}".format(100*np.mean(accuracy[1,:])))
 
-y_pred_rbf = rbf.predict(x_test)
-y_pred_bayes = bayes.predict(x_test)
-print("Accuracy of the RBF Kernel SVM = {:.2f}".format(100*accuracy_score(y_test, y_pred_rbf)))
-print("Accuracy of the Naïve Bayes SVM = {:.2f}".format(100*accuracy_score(y_test, y_pred_bayes)))
-
-confmat_rbf = confusion_matrix(y_test, y_pred_rbf)
-confmat_bayes = confusion_matrix(y_test, y_pred_bayes)
+# confmat_rbf = confusion_matrix(y_test, y_pred_rbf)
+# confmat_bayes = confusion_matrix(y_test, y_pred_bayes)
